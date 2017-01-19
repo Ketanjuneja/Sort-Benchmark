@@ -1,0 +1,354 @@
+Shared_Memory
+//all required imports
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+/* This call is used for the in memory sort which is done parallely */
+class Sort
+{
+/* Quick sort is used for in memory sorting and the input is the array the start and end
+index */
+void quickSort(String arr[],int tno,int start,int end)
+{
+int low=start;
+int high= end;
+int middle = (low+high)/2;
+//System.out.println("Midle"+ middle+" "+low +" "+ high);
+String pivot= arr[middle]; //pivot calculation
+int i = low, j = high;
+while (i <= j) {
+while (arr[i].compareTo(pivot)< 0 ) {
+i++;
+}
+while (arr[j].compareTo(pivot)>0) {
+j;
+}
+if (i <= j) {
+String temp = arr[i];
+arr[i] = arr[j];
+arr[j] = temp;
+i++;
+j;
+}
+}
+// recursively sort two sub parts
+if (low < j)
+quickSort(arr,tno,low, j);
+if (high > i)
+{
+//System.out.println("Ok Here");
+quickSort(arr,tno, i, high);
+}
+}
+/* merging the temporary files created after each in memory run */
+public void mergeFiles(List<String> files,int no_of_records,List<String> res,int
+tid,String filename) throws IOException
+{
+/* input is the list of input files and num of records with file name of the file
+where result is stored */
+String[] ref = new String[files.size()];
+BufferedReader[] brs = new BufferedReader[files.size()];
+int rec_count=0;
+//System.out.println(" total size _merge"+files.size());
+// Read a line from each open file
+for(int i=0;i<files.size();i++)
+{
+brs[i]= new BufferedReader(new FileReader(files.get(i)));
+ref[i] = brs[i].readLine();
+}
+String FileName;
+if(filename!=null)
+{
+FileName="output.txt";
+}
+else
+{
+FileName= "tempmer_"+tid+".txt";
+res.add(FileName);
+}
+File file= new File(FileName); //create output file
+file.createNewFile();
+BufferedWriter bw= new BufferedWriter(new FileWriter(FileName));
+while(rec_count<no_of_records)
+{
+int ind=min(ref); //find minimum from all files
+//System.out.println(ref[3]);
+bw.write(ref[ind]); //write to output
+bw.newLine();
+rec_count++;
+if((ref[ind]=brs[ind].readLine())==null){
+ref[ind]="~~~~~~~~~~~"; // if EOF then replace string by
+largest string
+}
+}
+bw.close();
+for(int i=0;i<files.size();i++)
+{
+File f= new File(files.get(i));
+f.delete(); // delete intermediate files
+}
+}
+int min(String []r)
+{
+String min= r[0];
+int index=0;
+// find smallest string among all in the String array r[]
+for(int i=1;i<r.length;i++)
+{
+if(min.compareTo(r[i]) > 0 )
+{
+// System.out.println(min + r[i]);
+min=r[i];
+index=i;
+}
+}
+//System.out.println(index);
+return index; // return index of minimum string
+}
+}
+class Threads implements Runnable
+{
+//private String threadName;
+private String[] data;
+private int len,tid,runs;
+List<String> s;
+Threads( String x[],int leng,int id,int r,List<String> a){
+data = x; // store all variable refrences
+len=leng;
+tid=id;
+runs=r;
+s=a;
+}
+public void run() {
+//System.out.println("In thread"+tid + (len1))
+;
+Sort s1=new Sort();
+s1.quickSort(data, tid, 0, len1)
+; // call the in memory sort
+try {
+String FileName="temp_"+tid+"_"+runs+".txt";
+s.add(FileName); //create intermediate file
+File file= new File(FileName);
+file.createNewFile();
+FileWriter fr= new FileWriter(FileName);
+//File f= new File("input.txt");
+BufferedWriter br= new BufferedWriter(fr);
+for(int i=0;i<len;i++)
+{
+br.write(data[i]); //write to intermediate files
+br.newLine();
+}
+br.close();
+//System.out.println("Done Here "+tid +" "+runs);
+} catch (IOException ex) {
+// report
+}
+}
+}
+// Main Class
+public class SharedMem {
+/**
+* @param args
+* @throws IOException
+* @throws InterruptedException
+*/
+public static void main(String[] args) throws IOException, InterruptedException {
+// Consider two arguments one for Chunk size and one for number of threads
+int chunk_size= Integer.parseInt(args[0]);
+int ThreadCount= Integer.parseInt(args[1]);
+int linecount=0;
+long starttime= System.currentTimeMillis();
+// Create input Strings to threads by dividing chunks into chunks for each
+String d1[] = new String[chunk_size/ThreadCount];
+String d2[]= new String[chunk_size/ThreadCount];
+String d3[]= new String[chunk_size/ThreadCount];
+String d4[]= new String[chunk_size/ThreadCount];
+String d5[]= new String[chunk_size/ThreadCount];
+String d6[]= new String[chunk_size/ThreadCount];
+String d7[]= new String[chunk_size/ThreadCount];
+String d8[]= new String[chunk_size/ThreadCount];
+//System.out.println("Ok "+chunk_size);
+//int start=0;
+//int end=0;
+int runs=1;
+File f1= new File("sharedmem.log"); //create log to monitor
+f1.createNewFile();
+FileWriter fr1= new FileWriter("sharedmem.log");
+//File f= new File("input.txt");
+BufferedWriter br1= new BufferedWriter(fr1);
+br1.write("Starting the process");
+br1.newLine();
+FileReader fr= new FileReader("input.txt");
+File f= new File("input.txt");
+BufferedReader br= new BufferedReader(fr);
+int num_of_records= (int) (f.length()/100);
+System.out.println("Read file: "+num_of_records);
+//int memForThread = chunk_size/ThreadCount;
+int remaining_data= (chunk_size% ThreadCount); //remaining data after each
+iteration
+List<String> l= new ArrayList<String>();
+//Thread t[] ;
+//Runnable r[];
+int i=0;
+int j=0;
+br1.write("Before Starting"+ new java.util.Date());
+br1.newLine();
+while( runs*chunk_size <= (num_of_recordsremaining_
+data))
+{
+i=0;
+j=0;
+linecount=0;
+// System.out.println("Before Read"+ new java.util.Date());
+while(linecount<chunk_size)
+{
+//reading chunk by chunk
+switch(i)
+{
+case 0:d1[j]= br.readLine();
+break;
+case 1:d2[j]= br.readLine();
+break;
+case 2:d3[j]= br.readLine();
+break;
+case 3:d4[j]= br.readLine();
+break;
+case 4:d5[j]= br.readLine();
+break;
+case 5:d6[j]= br.readLine();
+break;
+case 6:d7[j]= br.readLine();
+break;
+case 7:d8[j]= br.readLine();
+break;
+}
+j++;
+if(j== chunk_size/ThreadCount)
+{
+i++;
+j=0;
+}
+linecount++;
+}
+//System.out.println( d1.length);
+//start=(runs1)*(
+chunk_size/ThreadCount);
+//end= start + (chunk_size/ThreadCount) 1;
+// Executor service for parallel runs of the program
+ExecutorService executor = Executors.newFixedThreadPool(ThreadCount);
+//Create interface for each
+for(int k=0;k<ThreadCount;k++)
+{
+switch(k)
+{
+case 0: Runnable r= new Threads(d1,chunk_size/ThreadCount,k,runs,l);
+executor.execute(r); //create thread and add to executioner
+/*Thread t=new Thread(r);
+//System.out.println("Ok");
+t.start();
+t.join();*/
+break;
+case 1: Runnable r1= new Threads(d2,chunk_size/ThreadCount,k,runs,l);
+/*Thread t1=new Thread(r1);
+//System.out.println("Ok");
+t1.start();
+t1.join();*/
+executor.execute(r1);
+break;
+case 2: Runnable r2= new Threads(d3,chunk_size/ThreadCount,k,runs,l);
+/*Thread t2=new Thread(r2);
+//System.out.println("Ok");
+t2.start();
+t2.join();*/
+executor.execute(r2);
+break;
+case 3: Runnable r3= new Threads(d4,chunk_size/ThreadCount,k,runs,l);
+/*Thread t3=new Thread(r3);
+//System.out.println("Ok");
+t3.start();
+t3.join();*/
+executor.execute(r3);
+break;
+case 4: Runnable r4= new Threads(d5,chunk_size/ThreadCount,k,runs,l);
+/*Thread t3=new Thread(r3);
+//System.out.println("Ok");
+t3.start();
+t3.join();*/
+executor.execute(r4);
+break;
+case 5: Runnable r5= new Threads(d6,chunk_size/ThreadCount,k,runs,l);
+/*Thread t3=new Thread(r3);
+//System.out.println("Ok");
+t3.start();
+t3.join();*/
+executor.execute(r5);
+break;
+case 6: Runnable r6= new Threads(d7,chunk_size/ThreadCount,k,runs,l);
+/*Thread t3=new Thread(r3);
+//System.out.println("Ok");
+t3.start();
+t3.join();*/
+executor.execute(r6);
+break;
+case 7: Runnable r7= new Threads(d8,chunk_size/ThreadCount,k,runs,l);
+/*Thread t3=new Thread(r3);
+//System.out.println("Ok");
+t3.start();
+t3.join();*/
+executor.execute(r7);
+break;
+}
+//r[k]= new Threads(data,chunk_size/ThreadCount,k,runs); //creating
+threads
+}
+executor.shutdown(); // no more threads accepted starting the parallel run
+//executor.awaitTermination(10, null);
+//System.out.println("After read "+ new java.util.Date());
+runs++;
+}
+// Reaming Data is processed here
+br1.write("After creating Sorted Files "+ new java.util.Date());
+br1.newLine();
+//System.out.println("Running Sort "+ new java.util.Date());
+if(remaining_data > 0)
+{
+j=0;
+String[] remdata= new String[remaining_data];
+while(j<remaining_data)
+{
+remdata[j]=br.readLine();
+j++;
+}
+Runnable r3= new Threads(remdata,chunk_size/ThreadCount,4,runs,l);
+Thread t3=new Thread(r3);
+//System.out.println("Ok");
+t3.start();
+t3.join();
+}
+// In memory sort ends here and the output files are stored in a list l
+//System.out.println(l);
+//int size= l.size()/2;
+// Merging phase begins here
+Sort s=new Sort();
+String fname="output.txt";
+//System.out.println(res);
+List<String> l1= new ArrayList<String>();
+s.mergeFiles(l, num_of_records,l1,5,fname);
+br.close();
+long endtime= System.currentTimeMillis();
+long dur=endtimestarttime;
+//System.out.println("Running Sort end "+ new java.util.Date());
+br1.write("Total Run Duration "+ dur);
+br1.newLine();
+System.out.println("Total Run Duration:"+dur+" msec");
+br1.close();
+}
+}
